@@ -1,6 +1,8 @@
+socket = null
+
 class Player
-    constructor: (@x, @y) ->
-        @color = "red"
+    constructor: (@x, @y, @id, @username) ->
+        @color = "red" 
         return
 
 class Arena
@@ -8,8 +10,25 @@ class Arena
         @_init(element)
 
     _init: (element) ->
+        if not io?
+            console.log 'Socket.io not initialized!'
         if not element?
             throw "Failed to initialize arena"
+
+        @players = []
+
+        socket = io.connect 'http://localhost:6543'
+
+        # player will be sent as JSON {x:,y:,id:,username:}
+        socket.on 'add', (data) =>
+            @players.push new Player(data.x, data.y, data.id, data.username)
+
+        socket.on 'init', (data) =>
+            for p in data.players
+                @players.push new Player p.x, p.y, p.id, p.username
+
+        socket.on 'update', (data) =>
+            return
 
         @canvasSelector = $('<canvas/>')
             .attr('width', window.innerWidth)
@@ -25,7 +44,10 @@ class Arena
 
         element.append(@canvas)
 
-        @players = [new Player(50,50)]
+        
+
+        $(document).bind 'keydown', 'left', -> thisPlayer.x -= 1
+        $(document).bind 'keydown', 'right', -> thisPlayer.x += 1
 
     getCtx: ->
         return @canvas.getContext('2d')
@@ -35,19 +57,14 @@ class Arena
 
     renderWorld: (ctx) ->
         ctx.clearRect 0, 0, @canvas.width, @canvas.height
-        @updateWorld()
         for player in @players
             ctx.fillStyle = player.color
             ctx.fillRect(player.x, player.x, 10, 10)
 
-    updateWorld: ->
-        for player in @players
-            player.x += 1
-            player.y += 1
-            if player.x > 100
-                player.x = 0
-            if player.y > 100
-                player.y = 0
+if window?
+    window.loadArena = (element) ->
+        return new Arena(element)
 
-window.loadArena = (element) ->
-    return new Arena(element)
+module.exports = 
+    Arena:  Arena
+    Player: Player
