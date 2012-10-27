@@ -2,7 +2,7 @@ socket = null
 
 class Player
     constructor: (@x, @y, @id, @username) ->
-        @color = "red" 
+        @color = '#'+Math.floor(Math.random()*16777215).toString(16)
         return
 
 class Arena
@@ -15,20 +15,24 @@ class Arena
         if not element?
             throw "Failed to initialize arena"
 
-        @players = []
+        @players = new Object
 
         socket = io.connect 'http://localhost:6543'
 
         # player will be sent as JSON {x:,y:,id:,username:}
         socket.on 'add', (data) =>
-            @players.push new Player(data.x, data.y, data.id, data.username)
+            player = data.player
+            @players[data.id] = new Player(player.x, player.y, player.id, player.username)
 
         socket.on 'init', (data) =>
-            for p in data.players
-                @players.push new Player p.x, p.y, p.id, p.username
+            @id = data.id
+            players = JSON.parse(data.players)
+            for id, p of players
+                @players[id] = new Player p.x, p.y, p.id, p.username
 
         socket.on 'update', (data) =>
-            return
+            @players[data.id].x += data.deltaX
+            @players[data.id].y += data.deltaY
 
         @canvasSelector = $('<canvas/>')
             .attr('width', window.innerWidth)
@@ -42,12 +46,29 @@ class Arena
             @canvas.height = window.innerHeight
         )
 
+        $(window).unload ->
+            socket.emit 'disconnect'
         element.append(@canvas)
 
         
 
-        $(document).bind 'keydown', 'left', -> thisPlayer.x -= 1
-        $(document).bind 'keydown', 'right', -> thisPlayer.x += 1
+        $(document).bind 'keydown', (event) =>
+            switch event.which
+                when 37
+                    event.preventDefault()
+                    socket.emit 'move', {direction:"left", id:@id}
+                when 38
+                    event.preventDefault()
+                    socket.emit 'move', {direction:"up", id:@id}
+                when 39
+                    event.preventDefault()
+                    socket.emit 'move', {direction:"right", id:@id}
+                when 40
+                    event.preventDefault()
+                    socket.emit 'move', {direction:"down", id:@id}
+            
+
+            
 
     getCtx: ->
         return @canvas.getContext('2d')
@@ -57,14 +78,17 @@ class Arena
 
     renderWorld: (ctx) ->
         ctx.clearRect 0, 0, @canvas.width, @canvas.height
-        for player in @players
+        for id, player of @players
+            if @id is id
+                ctx.fillStyle = 'white'
+                ctx.fillText 'You', player.x + 10, player.y + 10
             ctx.fillStyle = player.color
-            ctx.fillRect(player.x, player.x, 10, 10)
+            ctx.fillRect(player.x, player.y, 10, 10)
 
 if window?
     window.loadArena = (element) ->
         return new Arena(element)
 
-module.exports = 
+module?.exports = 
     Arena:  Arena
     Player: Player
