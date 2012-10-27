@@ -34,12 +34,15 @@
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.8.2.min.js"><\/script>')</script>
         <script src="js/plugins.js"></script>
         <script src="js/main.js"></script>
-        <script src="js/client.js"></script>
+        <script src="/client.js"></script>
         <script type="text/javascript">
             var arena = loadArena($('#wrapper'))   
             var ctx = arena.getCtx()
 
-            arena._intervalId = window.setInterval(function() { arena.renderWorld(ctx) }, 1000 / 30);
+            arena._intervalId = window.setInterval(function() { 
+                    arena.updateWorld();
+                    arena.renderWorld(ctx) 
+                }, 1000 / 30);
             
         </script>
     </body>

@@ -1,19 +1,21 @@
 express = require('express')
 app     = express()
-Client  = require('./public/js/client.js')
+Client  = require('./client.js')
 Player  = Client.Player
+path    = require('path')
 
 class World
     constructor: ->
         return
 
 app.get('/', (req, res) ->
-    res.sendfile __dirname + '/public/index.html'
+    res.sendfile path.resolve(__dirname + '/../public/index.html')
     )
 
 app.configure ->
-    app.use express.static __dirname + '/public'
-    # app.use 'public/css', express.static __dirname + '/public/css'
+    app.use express.static path.resolve(__dirname + '/../public')
+    app.use express.static __dirname + '/'
+
     app.use express.errorHandler({dumpExceptions: true, showStack: true})
 
 server = require('http').createServer(app)
@@ -24,14 +26,14 @@ players = new Object
 
 server.listen 6543
 io.sockets.on 'connection', (socket) -> 
-    console.log JSON.stringify(players)
     socket.emit 'init', {players:JSON.stringify(players), id:socket.id}
     newPlayer = new Player (Math.random() * 500)+1 | 0, (Math.random() * 500)+1 | 0, socket.id, 'woodne', socket.id
     io.sockets.emit 'add', {player: newPlayer, id:socket.id}
     players[socket.id] = newPlayer
 
-    socket.on 'disconnect', (socket) ->
-        console.log socket.id
+    socket.on 'disconnect',  ->
+        delete players[socket.id]
+        io.sockets.emit 'remove', {id:socket.id}
 
     socket.on 'move', (data) ->
         deltaX = deltaY = 0
@@ -49,5 +51,4 @@ io.sockets.on 'connection', (socket) ->
                 players[data.id].x += 5
                 deltaX = 5
         io.sockets.emit 'update', {id:data.id, deltaY:deltaY, deltaX:deltaX}
-        console.log players[data.id]
         

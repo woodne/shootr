@@ -1,7 +1,7 @@
 socket = null
 
 class Player
-    constructor: (@x, @y, @id, @username) ->
+    constructor: (@x, @y, @id, @username, @velocity = {x:0, y:0}) ->
         @color = '#'+Math.floor(Math.random()*16777215).toString(16)
         return
 
@@ -24,6 +24,9 @@ class Arena
             player = data.player
             @players[data.id] = new Player(player.x, player.y, player.id, player.username)
 
+        socket.on 'remove', (data) =>
+            delete @players[data.id]
+            
         socket.on 'init', (data) =>
             @id = data.id
             players = JSON.parse(data.players)
@@ -46,8 +49,6 @@ class Arena
             @canvas.height = window.innerHeight
         )
 
-        $(window).unload ->
-            socket.emit 'disconnect'
         element.append(@canvas)
 
         
@@ -76,6 +77,8 @@ class Arena
     addPlayer: (player) ->
         @players.append player
 
+    updateWorld: ->
+        return 
     renderWorld: (ctx) ->
         ctx.clearRect 0, 0, @canvas.width, @canvas.height
         for id, player of @players
