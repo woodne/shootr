@@ -4,11 +4,6 @@ Client  = require('./client.js')
 Player  = Client.Player
 path    = require('path')
 
-class World
-    constructor: (@w = 3000, @h = 2000) ->
-
-        return
-
 app.get('/', (req, res) ->
     res.sendfile path.resolve(__dirname + '/../public/index.html')
     )
