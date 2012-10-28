@@ -1,7 +1,8 @@
-socket = null
+@socket = null
 
 class Player
     constructor: (@x, @y, @id, @username, @velocity = {x:0, y:0}) ->
+        @maxVelocity = 10
         @color = '#'+Math.floor(Math.random()*16777215).toString(16)
         return
 
@@ -11,31 +12,34 @@ class Arena
 
     _init: (element) ->
         if not io?
-            console.log 'Socket.io not initialized!'
+            console.log '@socket.io not initialized!'
         if not element?
             throw "Failed to initialize arena"
 
         @players = new Object
-
-        socket = io.connect 'http://localhost:6543'
+        @frame = 0
+        @socket = io.connect 'http://localhost:6543'
 
         # player will be sent as JSON {x:,y:,id:,username:}
-        socket.on 'add', (data) =>
+        @socket.on 'add', (data) =>
             player = data.player
             @players[data.id] = new Player(player.x, player.y, player.id, player.username)
 
-        socket.on 'remove', (data) =>
+        @socket.on 'remove', (data) =>
             delete @players[data.id]
-            
-        socket.on 'init', (data) =>
+
+        @socket.on 'init', (data) =>
             @id = data.id
             players = JSON.parse(data.players)
             for id, p of players
                 @players[id] = new Player p.x, p.y, p.id, p.username
 
-        socket.on 'update', (data) =>
+        @socket.on 'update', (data) =>
             @players[data.id].x += data.deltaX
             @players[data.id].y += data.deltaY
+
+        @socket.on 'pong', (data) =>
+            @curPing = (new Date).getTime() - data.time
 
         @canvasSelector = $('<canvas/>')
             .attr('width', window.innerWidth)
@@ -57,16 +61,16 @@ class Arena
             switch event.which
                 when 37
                     event.preventDefault()
-                    socket.emit 'move', {direction:"left", id:@id}
+                    @socket.emit 'move', {direction:"left", id:@id}
                 when 38
                     event.preventDefault()
-                    socket.emit 'move', {direction:"up", id:@id}
+                    @socket.emit 'move', {direction:"up", id:@id}
                 when 39
                     event.preventDefault()
-                    socket.emit 'move', {direction:"right", id:@id}
+                    @socket.emit 'move', {direction:"right", id:@id}
                 when 40
                     event.preventDefault()
-                    socket.emit 'move', {direction:"down", id:@id}
+                    @socket.emit 'move', {direction:"down", id:@id}
             
 
             
@@ -78,13 +82,17 @@ class Arena
         @players.append player
 
     updateWorld: ->
+        if @frame is 0
+            @socket.emit 'ping', {time: (new Date).getTime()}
+
+        @frame = (@frame + 1) % 30
         return 
     renderWorld: (ctx) ->
         ctx.clearRect 0, 0, @canvas.width, @canvas.height
         for id, player of @players
             if @id is id
                 ctx.fillStyle = 'white'
-                ctx.fillText 'You', player.x + 10, player.y + 10
+                ctx.fillText "You : #{@curPing}ms", player.x, player.y + 20
             ctx.fillStyle = player.color
             ctx.fillRect(player.x, player.y, 10, 10)
 

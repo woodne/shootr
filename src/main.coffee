@@ -5,7 +5,8 @@ Player  = Client.Player
 path    = require('path')
 
 class World
-    constructor: ->
+    constructor: (@w = 3000, @h = 2000) ->
+
         return
 
 app.get('/', (req, res) ->
@@ -34,6 +35,9 @@ io.sockets.on 'connection', (socket) ->
     socket.on 'disconnect',  ->
         delete players[socket.id]
         io.sockets.emit 'remove', {id:socket.id}
+
+    socket.on 'ping', (data) ->
+        socket.emit 'pong', {time: data.time}
 
     socket.on 'move', (data) ->
         deltaX = deltaY = 0
