@@ -35,9 +35,8 @@ io.sockets.on 'connection', (socket) ->
         socket.emit 'pong', {time: data.time}
 
     socket.on 'update', (data) ->
-        console.log data
         io.sockets.emit 'update', data
-        
+
     socket.on 'move', (data) ->
         deltaX = deltaY = 0
         switch data.direction

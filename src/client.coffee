@@ -192,7 +192,22 @@ class Player
 
 class World
     constructor: (@x1 = 0, @x2 = 3000, @y1 = 0, @y2 = 2000) ->
+        @init()
         return
+
+    init: ->
+        @canvas = $('<canvas/>')
+            .attr('width', @width())
+            .attr('height', @height())[0]
+        ctx = @canvas.getContext('2d')
+        ctx.strokeStyle = 'white'
+        ctx.strokeRect 0, 0, @width(), @height()
+
+        ctx.fillStyle = 'white'
+        i = 0
+        while i < 1000
+            ctx.fillRect (Math.random() * @width()) + 1 | 0, (Math.random() * @height()) + 1 | 0, 2, 2
+            i++
 
     height: ->
         return @y2 - @y1
@@ -215,7 +230,6 @@ class Camera
     updateViewBounds: ->
         @right = @left + window.innerWidth
         @bottom = @top + window.innerHeight
-        console.log [@left, @right, @top, @bottom]
 
     getViewBounds: ->
         return [@left, @right, @top, @bottom]
@@ -323,6 +337,9 @@ class Arena
         @player.x += @player.velocity.x
         @player.y += @player.velocity.y
 
+        @camera.adjustViewBounds Direction.HORIZONTAL, -@player.velocity.x
+        @camera.adjustViewBounds Direction.VERTICAL, -@player.velocity.y
+
         if @player.targetAngle > @player.angle + Math.PI
             @player.targetAngle -= Math.PI * 2
         if @player.targetAngle < @player.angle - Math.PI
@@ -346,7 +363,7 @@ class Arena
         ctx.clearRect 0, 0, @canvas.width, @canvas.height
         [x,y] = @camera.transform(0,0)
         ctx.strokeStyle = "white"
-        ctx.strokeRect x, y, @world.width(), @world.height()
+        ctx.drawImage @world.canvas, x, y, @world.width(), @world.height()
 
         for id, player of @players
             [x, y] = @camera.transform player.x, player.y
