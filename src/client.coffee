@@ -8,7 +8,7 @@ Padding =
 
 curPing = -1
 
-devicePixelRatio = if window.devicePixelRatio then window.devicePixelRatio else 1
+devicePixelRatio = if window?.devicePixelRatio? then window.devicePixelRatio else 1
 
 radians = (deg) -> 
     return deg * Math.PI / 180
