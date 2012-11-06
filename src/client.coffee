@@ -8,6 +8,8 @@ Padding =
 
 curPing = -1
 
+devicePixelRatio = if window.devicePixelRatio then window.devicePixelRatio else 1
+
 radians = (deg) -> 
     return deg * Math.PI / 180
 
@@ -62,7 +64,7 @@ class Vector2
         @x = v.x
         @y = v.y
 
-    magnitue: ->
+    magnitude: ->
         return Math.sqrt((@x * @x) + (@y * @y))
 
     magnitudeSquared: ->
@@ -219,6 +221,7 @@ class Camera
     constructor: (@world) ->
         @left = 20
         @top  = 20
+        @zoom = 1
         @updateViewBounds()
         return
 
@@ -256,7 +259,7 @@ class Arena
         @player
         @players = new Object
         @frame = 0
-        @socket = io.connect 'http://localhost:6543'
+        @socket = io.connect 'http://192.168.1.149:6543'
 
         @world = new World()
         @camera = new Camera(@world)
@@ -313,48 +316,83 @@ class Arena
     addPlayer: (player) ->
         @players.append player
 
+    rotatePlayer: (value, inRadians = false) ->
+        if not inRadians
+            value = radians(value)
+
+        @player.targetAngle += value
+
+    acceleratePlayer: (value = 0.5) ->
+        @player.velocity.x += Math.cos(@player.angle) * value
+        @player.velocity.y += Math.sin(@player.angle) * value
+
+        return @player.velocity
+
+    deceleratePlayer: (percent = 0.9) ->
+        @player.velocity.multiplyEq(percent)
+
+        return @player.velocity
+
     updatePlayer: ->
         if not @player?
             return false
 
-        @player.velocity.multiplyEq 0.96
+        if 0 < (@deceleratePlayer 0.96).magnitude() < 0.4
+            @player.velocity.reset(0,0)
+            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle}
         speed = 0.5
 
         if @keys.isKeyDown(@keys.RIGHT)
-            @player.targetAngle += radians(10)
+            @rotatePlayer(10)
 
         if @keys.isKeyDown(@keys.LEFT)
-            @player.targetAngle -= radians(10)
+            @rotatePlayer(-10)
 
         if @keys.isKeyDown(@keys.UP)
-            @player.velocity.x += Math.cos(@player.angle) * speed
-            @player.velocity.y += Math.sin(@player.angle) * speed
+            @acceleratePlayer(0.5)
 
         if @keys.isKeyDown(@keys.DOWN)
-            @player.velocity.multiplyEq(0.9)
+            @deceleratePlayer(0.9)
 
-
+        oldX = @player.x
+        oldY = @player.y
         @player.x += @player.velocity.x
         @player.y += @player.velocity.y
 
-        @camera.adjustViewBounds Direction.HORIZONTAL, -@player.velocity.x
-        @camera.adjustViewBounds Direction.VERTICAL, -@player.velocity.y
+        # @camera.adjustViewBounds Direction.HORIZONTAL, -@player.velocity.x
+        # @camera.adjustViewBounds Direction.VERTICAL, -@player.velocity.y
 
         if @player.targetAngle > @player.angle + Math.PI
             @player.targetAngle -= Math.PI * 2
         if @player.targetAngle < @player.angle - Math.PI
             @player.targetAngle += Math.PI * 2
 
-        @player.angle += (@player.targetAngle - @player.angle) * 0.4
+        oldAngle = @player.angle
+        if Math.abs(angleDiff = @player.targetAngle - @player.angle) >=  0.01
+            @player.angle += angleDiff * 0.4
 
-        @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle}
+        # Only emit updates when there are actually changes
+        if @player.x isnt oldX or @player.y isnt oldY or  @player.angle isnt oldAngle
+            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle}
+        
 
         for id, player of @players
             if @id isnt id
                 player.x += player.velocity.x
                 player.y += player.velocity.y
 
+    updateCamera: ->
+        [x, y] = @camera.transform(@player.x, @player.y)
+
+        if x < 50
+            @camera.adjustViewBounds Direction.HORIZONTAL, window.innerWidth / 2
+        if x > window.innerWidth - 50
+            @camera.adjustViewBounds Direction.HORIZONTAL, -window.innerWidth / 2
+
+        return
+
     updateWorld: ->
+        @updateCamera()
         @updatePlayer()
 
         return 
@@ -367,7 +405,7 @@ class Arena
 
         for id, player of @players
             [x, y] = @camera.transform player.x, player.y
-            player.render ctx, x, y, id
+            player.render ctx, x, y, @id
 
 if window?
     window.loadArena = (element) ->
