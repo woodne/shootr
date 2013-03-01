@@ -297,6 +297,43 @@ textarea {
     }
 }
 
+div.player {
+    text-align: center;
+    font-size: 10px;
+    color: #FFFFFF;
+}
+
+div.username_input {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 100;
+    border: solid 1px white;
+    border-radius: 5px;
+    background: rgba(100,100,100,0.4);
+    margin-left: -8em;
+    margin-top: -4em;
+
+    width: 16em;
+    height: 8em;
+}
+div.players {
+    position: absolute;
+    height: 150px;
+    width: 20%;
+    margin-top: 15%;
+    margin-left: -20%;
+    top: 0%;
+    left: 100%;
+    background: rgba(155,155,155,0.25);
+    z-index: 100;
+    border-radius: 15px;
+}
+
+div.title {
+    color: #FFFFFF;
+    text-align: center;
+}
 div.mobile {
     position: absolute;
     height: 150px;

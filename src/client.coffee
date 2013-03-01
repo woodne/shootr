@@ -163,6 +163,7 @@ class Player
         @velocity = new Vector2()
         @angle = 0
         @targetAngle = @angle
+        @kills = 0
         if window?
             @img = new Image()
             @img.src = '/img/player.png'
@@ -259,7 +260,7 @@ class Arena
         @player
         @players = new Object
         @frame = 0
-        @socket = io.connect 'http://192.168.1.149:6543'
+        @socket = io.connect 'http://localhost:6543'
 
         @world = new World()
         @camera = new Camera(@world)
@@ -270,22 +271,27 @@ class Arena
             player = data.player
             @players[data.id] = new Player(player.x, player.y, player.id, player.username)
 
+            @addToScoreboard data.id, player
+
             if data.id is @id
                 @player = @players[data.id]
 
         @socket.on 'remove', (data) =>
             delete @players[data.id]
+            $("##{data.id}").remove()
 
         @socket.on 'init', (data) =>
             @id = data.id
             players = JSON.parse(data.players)
             for id, p of players
                 @players[id] = new Player p.x, p.y, p.id, p.username
+                @addToScoreboard id, p
 
         @socket.on 'update', (data) =>
-            @players[data.id].velocity.x = data.vel.x
-            @players[data.id].velocity.y = data.vel.y
-            @players[data.id].angle = data.angle
+            for id, p of data
+                @players[id].x = p.pos.x
+                @players[id].y = p.pos.y
+                @players[id].angle = p.angle
 
         @socket.on 'pong', (data) =>
             curPing = (new Date).getTime() - data.time
@@ -309,6 +315,12 @@ class Arena
         window.setInterval ( =>
             @socket.emit 'ping', {time: (new Date).getTime()}), 3000
             
+    addToScoreboard: (id, player) ->
+        $('.players').append($('<div/>', {
+            id: id,
+            text: player.username + ' - ' + player.kills,
+            class: "player" 
+            }))
 
     getCtx: ->
         return @canvas.getContext('2d')
@@ -320,7 +332,7 @@ class Arena
         if not inRadians
             value = radians(value)
 
-        @player.targetAngle += value
+        @player.targetAngle += value % (2 * Math.PI)
 
     acceleratePlayer: (value = 0.5) ->
         @player.velocity.x += Math.cos(@player.angle) * value
@@ -339,7 +351,7 @@ class Arena
 
         if 0 < (@deceleratePlayer 0.96).magnitude() < 0.4
             @player.velocity.reset(0,0)
-            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle}
+            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle, pos: {x:@player.x, y:@player.y}}
         speed = 0.5
 
         if @keys.isKeyDown(@keys.RIGHT)
@@ -373,7 +385,7 @@ class Arena
 
         # Only emit updates when there are actually changes
         if @player.x isnt oldX or @player.y isnt oldY or  @player.angle isnt oldAngle
-            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle}
+            @socket.emit 'update', {id:@id, vel:@player.velocity, angle:@player.angle, pos: {x:@player.x, y:@player.y}}
         
 
         for id, player of @players

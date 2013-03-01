@@ -17,10 +17,11 @@ app.configure ->
 server = require('http').createServer(app)
 io     = require('socket.io').listen(server)
 
-players = new Object
+players = new Object()
 
 
 server.listen 6543
+
 io.sockets.on 'connection', (socket) -> 
     socket.emit 'init', {players:JSON.stringify(players), id:socket.id}
     newPlayer = new Player (Math.random() * 500)+1 | 0, (Math.random() * 500)+1 | 0, socket.id, 'woodne', socket.id
@@ -35,22 +36,17 @@ io.sockets.on 'connection', (socket) ->
         socket.emit 'pong', {time: data.time}
 
     socket.on 'update', (data) ->
-        io.sockets.emit 'update', data
+        player = players[data.id]
+        player.velocity = data.vel
+        player.x = data.pos.x
+        player.y = data.pos.y
+        player.angle = data.angle
 
-    socket.on 'move', (data) ->
-        deltaX = deltaY = 0
-        switch data.direction
-            when 'left'
-                players[data.id].x -= 5
-                deltaX = -5
-            when 'up'
-                players[data.id].y -= 5
-                deltaY = -5
-            when 'down'
-                players[data.id].y += 5
-                deltaY = 5
-            when 'right'
-                players[data.id].x += 5
-                deltaX = 5
-        io.sockets.emit 'update', {id:data.id, deltaY:deltaY, deltaX:deltaX}
-        
+sendStateToClients = ->
+    data = new Object()
+    for id, p of players
+        data[id] = {angle: p.angle, vel: p.velocity, pos: {x:p.x, y:p.y}}
+
+    io.sockets.emit 'update', data
+
+setInterval(sendStateToClients, 1000 / 30)
