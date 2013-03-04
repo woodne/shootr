@@ -16,7 +16,7 @@ World.prototype.init = function() {
 
     var ctx = this.canvas.getContext('2d');
     ctx.strokeStyle = 'white';
-    ctx.strokeRect(0, 0, this.width(), this.height());
+    ctx.strokeRect(0, 0, this.width, this.height);
     ctx.fillStyle = 'white';
 
     for (var i = 0; i < 1000; i++) {

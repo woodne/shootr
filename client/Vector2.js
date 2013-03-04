@@ -1,10 +1,25 @@
 var Vector2 = function(x, y) {
+    if (typeof x === 'undefined') {
+        x = 0;
+    }
+    if (typeof y === 'undefined') {
+        y = 0;
+    }
+    
     this.x = x;
     this.y = y;
 };
 
 Vector2.DEGREES = 180 / Math.PI;
 Vector2.RADIANS = Math.PI / 180;
+
+var radians = function(deg) {
+    return deg * Math.PI / 180;
+}
+
+var degrees = function(rad) {
+    return rad * 180 / Math.PI;
+}
 
 Vector2.prototype.reset = function(x, y) {
     this.x = y;
@@ -126,3 +141,7 @@ Vector2.prototype.rotateAroundPoint = function(point, angle, radians) {
     temp.plusEq(point);
     return this.copyFrom(temp);
 };
+
+if (typeof module !== 'undefined') {
+    module.exports = Vector2;
+}

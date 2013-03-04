@@ -5,9 +5,13 @@ module.exports = function(grunt) {
             options: {
                 separator: ';'
             },
-            dist: {
-                src: 'src/*.js',
+            client: {
+                src: 'client/*.js',
                 dest: 'build/<%= pkg.name %>.js'
+            },
+            server: {
+                src: 'server/*.js',
+                dest: 'build/server.js'
             }
         },
         uglify: {

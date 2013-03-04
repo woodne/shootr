@@ -28,9 +28,12 @@ Player.prototype.render = function(ctx, x, y, id) {
     ctx.restore();
     if (this.id === id) {
         ctx.fillStyle = 'white';
-        string = "You : " + (curPing != null ? curPing : '-1') + "ms";
+        string = "You : " //+ (curPing != null ? curPing : '-1') + "ms";
         stringWidth = (ctx.measureText(string)).width;
         ctx.fillText(string, x - stringWidth / 2 + this.width / 2, y + this.height + 10);
     }   
 }
 
+if (typeof module !== 'undefined') {
+    module.exports = Player;
+}
